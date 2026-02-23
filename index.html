@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>Impreza 2w1</title>
+  <style>
+    :root { --bg:#0b0b10; --card:#141423; --text:#f3f3f7; --muted:#b7b7c8; --acc:#9ae6b4; --line:#23233a; }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;background:radial-gradient(1200px 800px at 20% -10%, #23235a 0%, transparent 60%), var(--bg);color:var(--text)}
+    a{color:inherit}
+    .wrap{max-width:980px;margin:0 auto;padding:28px 18px 64px}
+    header{display:flex;flex-direction:column;gap:10px;padding:18px 0 10px}
+    .pill{display:inline-flex;align-items:center;gap:8px;background:rgba(154,230,180,.12);border:1px solid rgba(154,230,180,.35);color:var(--acc);padding:8px 12px;border-radius:999px;font-weight:600;width:max-content}
+    h1{margin:6px 0 0;font-size:38px;letter-spacing:-.02em}
+    .sub{color:var(--muted);line-height:1.55;max-width:70ch}
+    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px;margin-top:16px}
+    .card{grid-column:span 12;background:rgba(20,20,35,.78);border:1px solid var(--line);border-radius:18px;padding:16px 16px}
+    @media (min-width:860px){
+      .span6{grid-column:span 6}
+      .span4{grid-column:span 4}
+      .span8{grid-column:span 8}
+    }
+    h2{margin:0 0 8px;font-size:18px}
+    .muted{color:var(--muted);line-height:1.6}
+    .list{margin:10px 0 0;padding:0;list-style:none;display:grid;gap:8px}
+    .row{display:flex;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.03)}
+    .row b{font-weight:650}
+    .btn{appearance:none;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:var(--text);padding:10px 12px;border-radius:14px;cursor:pointer;font-weight:650}
+    .btn:hover{background:rgba(255,255,255,.10)}
+    .input{width:100%;padding:12px 12px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--text);outline:none}
+    .input::placeholder{color:#8f8fb0}
+    .badge{display:inline-block;font-size:12px;color:var(--muted);border:1px solid var(--line);padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.03)}
+    footer{margin-top:22px;color:var(--muted);font-size:13px}
+    .map{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+    .map a{display:inline-flex;align-items:center;gap:8px;text-decoration:none}
+    .sep{height:1px;background:var(--line);margin:12px 0}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="pill">✨ Impreza 2w1</div>
+      <h1>Wszystkie info w jednym miejscu</h1>
+      <p class="sub">
+        Tu znajdziesz plan dnia, lokalizacje, wskazówki dojazdu i (wkrótce) potwierdzenie obecności.
+        Zapisz sobie link, będzie łatwiej wrócić.
+      </p>
+    </header>
+
+    <section class="grid">
+      <div class="card span6">
+        <h2>Kiedy</h2>
+        <ul class="list">
+          <li class="row"><span><b>Data</b></span><span>4 czerwca 2026</span></li>  
+          <li class="row"><span><b>Ceremonia</b></span><span>15:00</span></li>
+          <li class="row"><span><b>Start imprezy</b></span><span>17:00</span></li>
+        </ul>
+      </div>
+
+      <div class="card span6">
+        <h2>Gdzie</h2>
+        <ul class="list">
+          <li class="row"><span><b>Kościół</b> <span class="badge">ceremonia</span></span><span>Parafia św. Józefa w Tomaszowie Lubelskim</span></li>
+          <li class="row"><span><b>Lokal</b> <span class="badge">impreza</span></span><span>Zajazd Valentino, ul. 29 Listopada 55, Tomaszów Lubelski</span></li>
+        </ul>
+        <div class="map">
+          <a class="btn" href="https://www.google.com/maps/place/Ko%C5%9Bci%C3%B3%C5%82+pw.+%C5%9Aw.+J%C3%B3zefa/@50.4374412,23.4111574,16.42z/data=!4m6!3m5!1s0x4724af1db97cd621:0x3dadcc151da2d1af!8m2!3d50.4379009!4d23.4137895!16s%2Fg%2F120r9hjl?entry=ttu&g_ep=EgoyMDI2MDIxOC4wIKXMDSoASAFQAw%3D%3D" id="maps-ceremony" target="_blank" rel="noreferrer">🗺️ Mapy (ceremonia)</a>
+          <a class="btn" href="https://www.google.com/maps/place/Zajazd+Valentino/@50.4509759,23.4252799,17.17z/data=!4m9!3m8!1s0x4724af124a879e5f:0x180357aef9720587!5m2!4m1!1i2!8m2!3d50.4509832!4d23.4270407!16s%2Fg%2F1thz0fgy?entry=ttu&g_ep=EgoyMDI2MDIxOC4wIKXMDSoASAFQAw%3D%3D" id="maps-party" target="_blank" rel="noreferrer">🗺️ Mapy (impreza)</a>
+        </div>
+      </div>
+
+      <div class="card span8">
+        <h2>Plan dnia</h2>
+        <p class="muted">Krótko i czytelnie, bez ściany tekstu:</p>
+        <ul class="list">
+          <li class="row"><span><b>14:00</b> Zbiórka</span><span></span></li>
+          <li class="row"><span><b>15:00</b> Ceremonia</span><span>Parafia św. Józefa</span></li>
+          <li class="row"><span><b>17:00</b> Start imprezy</span><span>Zajazd Valentino</span></li>
+          <li class="row"><span><b>03:00</b> Koniec</span><span></span></li>
+        </ul>
+      </div>
+
+      <div class="card span4">
+        <h2>Nocleg</h2>
+        <p class="muted">
+          Jeśli potrzebujesz noclegu, ogarniemy to po potwierdzeniu obecności.
+          Docelowo w formularzu będzie: <b>tak/nie</b>, <b>zakres dat</b>, <b>liczba osób w pokoju</b>.
+        </p>
+      </div>
+
+      <div class="card span12">
+        <h2>Ważne info</h2>
+        <ul class="list">
+            <li class="row"><span><b>Dojazd</b></span><span>Kliknij mapy ↑</span></li>
+            <li class="row"><span><b>Dress code</b></span><span>Wygodnie + jak lubisz</span></li>
+            <li class="row"><span><b>Prezenty</b></span><span>Wasza obecność > wszystko</span></li>
+            <li class="row"><span><b>Dzieci</b></span><span>Mile widziane (daj znać w formularzu)</span></li>
+            <li class="row"><span><b>Nocleg</b></span><span>Ogarniemy po formularzu</span></li>
+            <li class="row"><span><b>Zdjęcia</b></span><span>Na imprezie podamy link do uploadu</span></li>
+        </ul>
+        <p class="muted" style="margin-top:10px">
+            Jak coś Cię nurtuje — wal śmiało. Lepiej zapytać niż stresować się w ciszy 😄
+        </p>
+      </div>
+
+      <div class="card span12" id="rsvp">
+        <h2>Potwierdzenie obecności</h2>
+        <p class="muted">Na razie przygotowujemy formularz. Jak tylko wystartuje, wpiszesz tu kod z zaproszenia.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;max-width:520px;margin-top:10px">
+          <input class="input" placeholder="Wpisz kod z zaproszenia (np. A7K3)" disabled />
+          <button class="btn" disabled>Przejdź do formularza</button>
+        </div>
+      </div>
+
+      <div class="card span12">
+        <h2>Kontakt</h2>
+        <p class="muted">
+          W razie pytań: <b>531 936 110</b> lub <b>662 585 446</b>. <br/>
+          (Tak, można pisać, nie gryziemy 😄)
+        </p>
+      </div>
+    </section>
+
+    <footer>
+      <div>Link: <b>2w1.bd-link.pl</b></div>
+    </footer>
+  </div>
+
+  <script>
+    const ceremony = "https://www.google.com/maps/place/Ko%C5%9Bci%C3%B3%C5%82+pw.+%C5%9Aw.+J%C3%B3zefa/@50.4377501,23.4076793,15.75z/data=!4m17!1m10!3m9!1s0x4724af124a879e5f:0x180357aef9720587!2sZajazd+Valentino!5m2!4m1!1i2!8m2!3d50.4509832!4d23.4270407!16s%2Fg%2F1thz0fgy!3m5!1s0x4724af1db97cd621:0x3dadcc151da2d1af!8m2!3d50.4379009!4d23.4137895!16s%2Fg%2F120r9hjl?entry=ttu&g_ep=EgoyMDI2MDIxOC4wIKXMDSoASAFQAw%3D%3D";
+    const party = "https://www.google.com/maps/place/Zajazd+Valentino/@50.4509759,23.4252799,17.17z/data=!4m9!3m8!1s0x4724af124a879e5f:0x180357aef9720587!5m2!4m1!1i2!8m2!3d50.4509832!4d23.4270407!16s%2Fg%2F1thz0fgy?entry=ttu&g_ep=EgoyMDI2MDIxOC4wIKXMDSoASAFQAw%3D%3D";
+    const a = document.getElementById("maps-ceremony");
+    const b = document.getElementById("maps-party");
+    if (ceremony) a.href = ceremony; else a.style.opacity = .5;
+    if (party) b.href = party; else b.style.opacity = .5;
+  </script>
+</body>
+</html>
