@@ -577,9 +577,9 @@ h1 {
 }
 
 .upload-preview {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
     overflow: hidden;
     border: 1px solid var(--line);
     flex-shrink: 0;
@@ -711,6 +711,7 @@ h1 {
     box-shadow: var(--shadow);
     animation: galleryFade 320ms ease both;
     transition: transform 220ms var(--ease-smooth), box-shadow 220ms var(--ease-smooth), border-color 220ms var(--ease-smooth);
+    cursor: zoom-in;
 }
 
 .gallery-item:hover {
@@ -721,7 +722,7 @@ h1 {
 
 .gallery-media {
     width: 100%;
-    aspect-ratio: 1 / 1;
+    aspect-ratio: 4 / 3;
     object-fit: cover;
     background: rgba(0, 0, 0, 0.04);
     transition: transform 300ms var(--ease-out), filter 220ms var(--ease-smooth);
@@ -737,6 +738,57 @@ h1 {
     font-size: 12px;
     color: var(--muted);
     word-break: break-all;
+}
+
+.preview-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: none;
+}
+
+.preview-modal[aria-hidden="false"] {
+    display: block;
+}
+
+.preview-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(34, 28, 22, 0.8);
+    backdrop-filter: blur(3px);
+}
+
+.preview-content {
+    position: relative;
+    z-index: 1;
+    height: 100%;
+    width: min(96vw, 1500px);
+    margin: 0 auto;
+    padding: 18px;
+    display: grid;
+    grid-template-rows: auto 1fr;
+    gap: 10px;
+}
+
+.preview-close {
+    justify-self: end;
+}
+
+.preview-body {
+    display: grid;
+    place-items: center;
+    overflow: auto;
+}
+
+.preview-media {
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: calc(100vh - 110px);
+    object-fit: contain;
+    border-radius: 10px;
+    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.28);
+    background: rgba(0, 0, 0, 0.1);
 }
 
 @keyframes galleryFade {

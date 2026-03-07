@@ -43,9 +43,20 @@
 
       <section class="section" style="padding-top: 20px;">
         <div id="gallery-grid" class="gallery-grid"></div>
+        <div class="hero-actions" style="justify-content: center;">
+          <button class="btn btn-secondary" type="button" id="load-more-btn" style="display:none;">Załaduj więcej</button>
+        </div>
       </section>
     </div>
   </main>
+
+  <div id="preview-modal" class="preview-modal" aria-hidden="true">
+    <div class="preview-backdrop" data-close-preview></div>
+    <div class="preview-content">
+      <button class="btn btn-secondary preview-close" type="button" id="preview-close-btn">Zamknij</button>
+      <div id="preview-body" class="preview-body"></div>
+    </div>
+  </div>
 
   <script>
     const statusText = document.getElementById("status-text");
@@ -58,10 +69,46 @@
     const selectedCount = document.getElementById("selected-count");
     const uploadList = document.getElementById("upload-list");
     const galleryGrid = document.getElementById("gallery-grid");
+    const loadMoreBtn = document.getElementById("load-more-btn");
+    const previewModal = document.getElementById("preview-modal");
+    const previewBody = document.getElementById("preview-body");
+    const previewCloseBtn = document.getElementById("preview-close-btn");
+    const GALLERY_PAGE_LIMIT = 48;
     let selectedFiles = [];
     let isUploading = false;
     let cancelRequested = false;
     let activeXhr = null;
+    let galleryItems = [];
+    let nextCursor = null;
+    let hasMore = false;
+    let isLoadingMore = false;
+
+    function openPreview(url, contentType, altText) {
+      previewBody.innerHTML = "";
+      if (isVideo(contentType)) {
+        const video = document.createElement("video");
+        video.src = url;
+        video.controls = true;
+        video.autoplay = true;
+        video.className = "preview-media";
+        previewBody.appendChild(video);
+      } else {
+        const img = document.createElement("img");
+        img.src = url;
+        img.alt = altText || "Podgląd zdjęcia";
+        img.className = "preview-media";
+        previewBody.appendChild(img);
+      }
+
+      previewModal.setAttribute("aria-hidden", "false");
+      document.body.style.overflow = "hidden";
+    }
+
+    function closePreview() {
+      previewModal.setAttribute("aria-hidden", "true");
+      previewBody.innerHTML = "";
+      document.body.style.overflow = "";
+    }
 
     function setStatus(text) {
       statusText.textContent = text;
@@ -171,6 +218,7 @@
     function renderItems(items) {
       if (!items || items.length === 0) {
         galleryGrid.innerHTML = "<p style='color: var(--muted);'>Brak plików w galerii.</p>";
+        loadMoreBtn.style.display = "none";
         return;
       }
 
@@ -180,6 +228,10 @@
         const card = document.createElement("article");
         card.className = "gallery-item";
         card.style.animationDelay = `${Math.min(index * 40, 320)}ms`;
+        card.dataset.url = item.url;
+        card.dataset.contentType = item.contentType || "";
+        card.dataset.alt = item.key || "";
+        card.tabIndex = 0;
 
         if (isVideo(item.contentType)) {
           const video = document.createElement("video");
@@ -204,6 +256,10 @@
 
         galleryGrid.appendChild(card);
       }
+
+      loadMoreBtn.style.display = hasMore ? "inline-flex" : "none";
+      loadMoreBtn.disabled = false;
+      loadMoreBtn.textContent = "Załaduj więcej";
     }
 
     function uploadSingleFile(file, index) {
@@ -258,15 +314,45 @@
       });
     }
 
-    async function loadGallery() {
-      setStatus("Ładowanie galerii...");
-      const response = await fetch("/api/gallery");
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok || !data.ok) {
-        throw new Error(data.error || "Nie udało się pobrać galerii.");
+    async function loadGallery(reset = false) {
+      if (reset) {
+        nextCursor = null;
+        hasMore = false;
+        galleryItems = [];
       }
-      renderItems(data.items);
-      setStatus(`Plików w galerii: ${data.items.length}`);
+
+      if (isLoadingMore) return;
+      isLoadingMore = true;
+
+      if (nextCursor) {
+        setStatus("Ładowanie kolejnych zdjęć...");
+        loadMoreBtn.disabled = true;
+        loadMoreBtn.textContent = "Ładowanie...";
+      } else {
+        setStatus("Ładowanie galerii...");
+      }
+
+      const qs = new URLSearchParams({ limit: String(GALLERY_PAGE_LIMIT) });
+      if (nextCursor) {
+        qs.set("cursor", nextCursor);
+      }
+
+      try {
+        const response = await fetch(`/api/gallery?${qs.toString()}`);
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.ok) {
+          throw new Error(data.error || "Nie udało się pobrać galerii.");
+        }
+
+        galleryItems = galleryItems.concat(data.items || []);
+        nextCursor = data.cursor || null;
+        hasMore = Boolean(data.hasMore);
+
+        renderItems(galleryItems);
+        setStatus(`Plików w galerii: ${galleryItems.length}`);
+      } finally {
+        isLoadingMore = false;
+      }
     }
 
     pickFilesBtn.addEventListener("click", () => {
@@ -338,7 +424,7 @@
           setStatus(`Wysłane: ${successCount}/${selectedFiles.length}`);
         }
         if (successCount > 0) {
-          await loadGallery();
+          await loadGallery(true);
         }
 
         fileInput.value = "";
@@ -371,9 +457,48 @@
 
     refreshBtn.addEventListener("click", async () => {
       try {
-        await loadGallery();
+        await loadGallery(true);
       } catch (error) {
         setStatus(error.message);
+      }
+    });
+
+    loadMoreBtn.addEventListener("click", async () => {
+      if (!hasMore) return;
+      try {
+        await loadGallery(false);
+      } catch (error) {
+        setStatus(error.message);
+        loadMoreBtn.disabled = false;
+        loadMoreBtn.textContent = "Załaduj więcej";
+      }
+    });
+
+    galleryGrid.addEventListener("click", (event) => {
+      const card = event.target.closest(".gallery-item");
+      if (!card) return;
+      openPreview(card.dataset.url, card.dataset.contentType, card.dataset.alt);
+    });
+
+    galleryGrid.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      const card = event.target.closest(".gallery-item");
+      if (!card) return;
+      event.preventDefault();
+      openPreview(card.dataset.url, card.dataset.contentType, card.dataset.alt);
+    });
+
+    previewModal.addEventListener("click", (event) => {
+      if (event.target.matches("[data-close-preview]")) {
+        closePreview();
+      }
+    });
+
+    previewCloseBtn.addEventListener("click", closePreview);
+
+    window.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && previewModal.getAttribute("aria-hidden") === "false") {
+        closePreview();
       }
     });
 
@@ -381,7 +506,7 @@
       updateSelectedCount();
       renderUploadList();
       try {
-        await loadGallery();
+        await loadGallery(true);
       } catch (error) {
         setStatus(error.message);
       }

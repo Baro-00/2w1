@@ -2,6 +2,8 @@ import { getCorsHeaders, json, optionsResponse } from "./_lib.js";
 
 const MAX_FILES_PER_UPLOAD = 20;
 const MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024;
+const DEFAULT_LIST_LIMIT = 48;
+const MAX_LIST_LIMIT = 100;
 
 function getBucket(env) {
   const bucket = env.MEDIA || env.GALLERY_BUCKET;
@@ -41,12 +43,23 @@ function normalizeListItem(object) {
   };
 }
 
-async function listObjects(env, limit = 100) {
+function parseLimit(rawLimit) {
+  const parsed = Number(rawLimit);
+  if (!Number.isInteger(parsed) || parsed < 1) return DEFAULT_LIST_LIMIT;
+  return Math.min(parsed, MAX_LIST_LIMIT);
+}
+
+async function listObjects(env, limit = DEFAULT_LIST_LIMIT, cursor) {
   const bucket = getBucket(env);
-  const listed = await bucket.list({ limit });
-  return (listed.objects || [])
+  const listed = await bucket.list({ limit, cursor });
+  const items = (listed.objects || [])
     .sort((a, b) => (a.uploaded < b.uploaded ? 1 : -1))
     .map(normalizeListItem);
+  return {
+    items,
+    cursor: listed.cursor || null,
+    hasMore: Boolean(listed.truncated),
+  };
 }
 
 function pickFiles(formData) {
@@ -95,8 +108,22 @@ export async function onRequestGet(context) {
   const corsHeaders = getCorsHeaders(request);
 
   try {
-    const items = await listObjects(env, 150);
-    return json({ ok: true, items }, 200, corsHeaders);
+    const url = new URL(request.url);
+    const limit = parseLimit(url.searchParams.get("limit"));
+    const cursor = url.searchParams.get("cursor") || undefined;
+
+    const result = await listObjects(env, limit, cursor);
+    return json(
+      {
+        ok: true,
+        items: result.items,
+        cursor: result.cursor,
+        hasMore: result.hasMore,
+        limit,
+      },
+      200,
+      corsHeaders
+    );
   } catch (error) {
     return json({ ok: false, error: error.message || "Unable to list gallery." }, 500, corsHeaders);
   }
