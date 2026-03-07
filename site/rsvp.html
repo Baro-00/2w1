@@ -12,6 +12,7 @@
       <article class="info-card">
         <h1 style="font-size: clamp(28px, 4vw, 44px); margin-bottom: 12px;">Formularz potwierdzenia</h1>
         <p id="status-text">Wpisz kod z zaproszenia (6 znaków), aby przejść do formularza.</p>
+        <p id="invite-hints" style="display:none; margin-top: 8px; color: var(--muted);"></p>
 
         <form id="login-form" class="form-row" style="margin-top: 18px;">
           <input
@@ -42,11 +43,8 @@
 
             <div class="section-card" style="padding: 18px; box-shadow: none;">
               <h3>Menu</h3>
-              <select class="input" name="menuChoice" id="menuChoice" style="border-radius: 14px;">
-                <option value="">Bez preferencji</option>
-                <option value="standard">Standard</option>
-                <option value="vegetarian">Wegetariańskie</option>
-              </select>
+              <p style="margin-top: 10px; color: var(--muted);">Wybierz dietę osobno dla każdej osoby.</p>
+              <div id="menu-per-person" class="cards-2" style="margin-top: 12px;"></div>
             </div>
           </div>
 
@@ -71,6 +69,7 @@
                 <input class="input" type="number" name="roomPeople" min="1" max="8" step="1" />
               </label>
             </div>
+            <p id="lodging-limit-hint" style="display:none; margin-top: 10px; color: var(--muted);"></p>
           </div>
 
           <div class="section-card" style="padding: 18px; box-shadow: none; margin-top: 18px;">
@@ -98,12 +97,21 @@
     const loginForm = document.getElementById("login-form");
     const rsvpForm = document.getElementById("rsvp-form");
     const statusText = document.getElementById("status-text");
+    const inviteHints = document.getElementById("invite-hints");
     const codeInput = document.getElementById("code");
     const logoutBtn = document.getElementById("logout-btn");
     const lodgingFields = document.getElementById("lodging-fields");
+    const lodgingLimitHint = document.getElementById("lodging-limit-hint");
+    const menuContainer = document.getElementById("menu-per-person");
     const LODGING_MIN = "2026-06-03";
     const LODGING_MAX = "2026-06-07";
     const ALLOWED_MENU = new Set(["", "standard", "vegetarian"]);
+    const MENU_LABELS = {
+      standard: "Standard",
+      vegetarian: "Wegetariańskie",
+      "": "Bez preferencji",
+    };
+    let partyLimit = 1;
 
     function setStatus(message) {
       statusText.textContent = message;
@@ -113,16 +121,131 @@
       return String(value || "").trim().toUpperCase();
     }
 
+    function normalizeText(value) {
+      return String(value || "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+    }
+
+    function inferGuestMeta(invite) {
+      const label = String(invite?.label || "");
+      const normalized = normalizeText(label);
+      if (/(z rodzina|z dziec)/.test(normalized)) {
+        return { kind: "family", limit: 8 };
+      }
+      if (/(z os\.?\s*towarz|z os towarz)/.test(normalized)) {
+        return { kind: "pair", limit: 2 };
+      }
+      if (/\bi\b/.test(normalized) || label.includes(",")) {
+        return { kind: "pair", limit: 2 };
+      }
+      return { kind: "single", limit: 1 };
+    }
+
+    function renderMenuFields(limit) {
+      menuContainer.innerHTML = "";
+      for (let i = 1; i <= limit; i += 1) {
+        const label = document.createElement("label");
+        label.textContent = "Osoba " + i;
+        const select = document.createElement("select");
+        select.className = "input";
+        select.dataset.menuPerson = String(i);
+        select.style.borderRadius = "14px";
+
+        for (const value of ["", "standard", "vegetarian"]) {
+          const option = document.createElement("option");
+          option.value = value;
+          option.textContent = MENU_LABELS[value];
+          select.appendChild(option);
+        }
+
+        label.appendChild(select);
+        menuContainer.appendChild(label);
+      }
+    }
+
+    function parseStoredMenuChoices(storedValue, limit) {
+      if (!storedValue) return new Array(limit).fill("");
+
+      const raw = String(storedValue).trim();
+      let parsed = [];
+      if (ALLOWED_MENU.has(raw)) {
+        parsed = [raw];
+      } else if (raw.startsWith("{") || raw.startsWith("[")) {
+        try {
+          const json = JSON.parse(raw);
+          if (Array.isArray(json)) {
+            parsed = json;
+          } else if (json && Array.isArray(json.choices)) {
+            parsed = json.choices;
+          }
+        } catch (_) {
+          parsed = [];
+        }
+      }
+
+      const normalized = parsed
+        .map((choice) => String(choice || "").trim().toLowerCase())
+        .filter((choice) => ALLOWED_MENU.has(choice))
+        .slice(0, limit);
+      const filled = new Array(limit).fill("");
+
+      if (normalized.length === 1 && limit > 1) {
+        return filled.map(() => normalized[0]);
+      }
+
+      normalized.forEach((choice, idx) => {
+        filled[idx] = choice;
+      });
+      return filled;
+    }
+
+    function readMenuChoices() {
+      return Array.from(menuContainer.querySelectorAll("select[data-menu-person]")).map((select) =>
+        String(select.value || "").trim().toLowerCase()
+      );
+    }
+
+    function applyInviteLimits(invite) {
+      const meta = inferGuestMeta(invite);
+      partyLimit = meta.limit;
+
+      renderMenuFields(partyLimit);
+      const roomPeopleInput = rsvpForm.elements.roomPeople;
+      roomPeopleInput.max = String(partyLimit);
+      if (Number(roomPeopleInput.value) > partyLimit) {
+        roomPeopleInput.value = String(partyLimit);
+      }
+
+      inviteHints.style.display = "block";
+      if (meta.kind === "single") {
+        inviteHints.textContent = "Zaproszenie dla 1 osoby.";
+      } else if (meta.kind === "pair") {
+        inviteHints.textContent = "Zaproszenie dla pary (maks. 2 osoby).";
+      } else {
+        inviteHints.textContent = "Zaproszenie rodzinne. Wpisz faktyczną liczbę osób.";
+      }
+
+      lodgingLimitHint.style.display = "block";
+      lodgingLimitHint.textContent = "Maksymalna liczba osób na nocleg dla tego zaproszenia: " + partyLimit + ".";
+    }
+
     function setLoggedIn(invite) {
       loginForm.style.display = "none";
       rsvpForm.style.display = "block";
       setStatus("Zalogowano: " + (invite?.label || invite?.code || "kod zaproszenia"));
+      applyInviteLimits(invite);
     }
 
     function setLoggedOut() {
       loginForm.style.display = "flex";
       rsvpForm.style.display = "none";
       setStatus("Wpisz kod z zaproszenia (6 znaków), aby przejść do formularza.");
+      inviteHints.style.display = "none";
+      lodgingLimitHint.style.display = "none";
+      partyLimit = 1;
+      renderMenuFields(1);
     }
 
     function toggleLodgingFields() {
@@ -151,9 +274,13 @@
       const attendingInput = rsvpForm.querySelector("input[name='attending'][value='" + attending + "']");
       if (attendingInput) attendingInput.checked = true;
 
-      if (rsvp.menu_choice) {
-        rsvpForm.elements.menuChoice.value = rsvp.menu_choice;
-      }
+      const menuChoices = parseStoredMenuChoices(rsvp.menu_choice, partyLimit);
+      const selects = menuContainer.querySelectorAll("select[data-menu-person]");
+      menuChoices.forEach((choice, idx) => {
+        if (selects[idx]) {
+          selects[idx].value = choice;
+        }
+      });
 
       const lodgingNeeded = Number(rsvp.lodging_needed) === 1 ? "yes" : "no";
       const lodgingInput = rsvpForm.querySelector("input[name='lodgingNeeded'][value='" + lodgingNeeded + "']");
@@ -214,7 +341,7 @@
 
       const payload = {
         attending: attending ? attending.value === "yes" : null,
-        menuChoice: rsvpForm.elements.menuChoice.value,
+        menuChoices: readMenuChoices(),
         lodgingNeeded: lodgingNeeded ? lodgingNeeded.value === "yes" : false,
         lodgingFrom: rsvpForm.elements.lodgingFrom.value || null,
         lodgingTo: rsvpForm.elements.lodgingTo.value || null,
@@ -222,7 +349,7 @@
         notes: rsvpForm.elements.notes.value || null,
       };
 
-      if (!ALLOWED_MENU.has(payload.menuChoice)) {
+      if (payload.menuChoices.some((choice) => !ALLOWED_MENU.has(choice))) {
         setStatus("Dozwolone opcje menu: Standard lub Wegetariańskie.");
         return;
       }
@@ -235,6 +362,11 @@
         )
       ) {
         setStatus("Nocleg można wybrać tylko w zakresie 03.06.2026-07.06.2026.");
+        return;
+      }
+
+      if (payload.lodgingNeeded && payload.roomPeople && Number(payload.roomPeople) > partyLimit) {
+        setStatus("Liczba osób na nocleg nie może przekraczać " + partyLimit + ".");
         return;
       }
 
@@ -263,6 +395,7 @@
     });
 
     (async () => {
+      renderMenuFields(1);
       const url = new URL(window.location.href);
       const codeFromQuery = normalizeCode(url.searchParams.get("code"));
       if (/^[A-Z0-9]{6}$/.test(codeFromQuery)) {

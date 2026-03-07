@@ -28,7 +28,47 @@ function normalizeDate(value) {
   return text;
 }
 
-function parsePayload(raw) {
+function normalizeText(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function inferGuestLimit(label) {
+  const normalized = normalizeText(label);
+  if (/(z rodzina|z dziec)/.test(normalized)) return 8;
+  if (/(z os\.?\s*towarz|z os towarz)/.test(normalized)) return 2;
+  if (/\bi\b/.test(normalized) || String(label || "").includes(",")) return 2;
+  return 1;
+}
+
+function parseMenuChoices(raw, guestLimit) {
+  const normalizeChoice = (value) => String(value || "").trim().toLowerCase().slice(0, 64);
+  let choices = [];
+
+  if (Array.isArray(raw.menuChoices)) {
+    choices = raw.menuChoices.map(normalizeChoice).slice(0, guestLimit);
+  } else {
+    const legacyChoice = normalizeChoice(raw.menuChoice);
+    choices = legacyChoice ? [legacyChoice] : [];
+  }
+
+  for (const choice of choices) {
+    if (!ALLOWED_MENU.has(choice)) {
+      return { error: "menuChoice must be one of: standard, vegetarian." };
+    }
+  }
+
+  if (choices.length <= 1) {
+    const single = choices[0] || "";
+    return { value: single || null };
+  }
+
+  return { value: JSON.stringify({ choices }) };
+}
+
+function parsePayload(raw, guestLimit) {
   const attending = normalizeBoolean(raw.attending);
   if (attending === null) return { error: "attending is required." };
 
@@ -44,14 +84,14 @@ function parsePayload(raw) {
   let roomPeople = null;
   if (roomPeopleRaw != null && String(roomPeopleRaw).trim() !== "") {
     roomPeople = Number(roomPeopleRaw);
-    if (!Number.isInteger(roomPeople) || roomPeople < 1 || roomPeople > 8) {
-      return { error: "roomPeople must be integer in range 1..8." };
+    if (!Number.isInteger(roomPeople) || roomPeople < 1 || roomPeople > guestLimit) {
+      return { error: `roomPeople must be integer in range 1..${guestLimit}.` };
     }
   }
 
-  const menuChoice = String(raw.menuChoice || "").trim().toLowerCase().slice(0, 64);
-  if (!ALLOWED_MENU.has(menuChoice)) {
-    return { error: "menuChoice must be one of: standard, vegetarian." };
+  const menu = parseMenuChoices(raw, guestLimit);
+  if (menu.error) {
+    return { error: menu.error };
   }
 
   if (lodgingNeeded) {
@@ -71,7 +111,7 @@ function parsePayload(raw) {
   return {
     payload: {
       attending: attending ? 1 : 0,
-      menuChoice: menuChoice || null,
+      menuChoice: menu.value,
       lodgingNeeded: lodgingNeeded == null ? null : lodgingNeeded ? 1 : 0,
       lodgingFrom: lodgingNeeded ? lodgingFrom : null,
       lodgingTo: lodgingNeeded ? lodgingTo : null,
@@ -99,12 +139,21 @@ export async function onRequestPost(context) {
     return json({ ok: false, error: "Invalid JSON payload." }, 400, corsHeaders);
   }
 
-  const parsed = parsePayload(raw);
+  const db = getDb(env);
+  const invite = await db
+    .prepare("SELECT label FROM invites WHERE code = ?1 AND active = 1")
+    .bind(code)
+    .first();
+  if (!invite) {
+    return json({ ok: false, error: "Unauthorized" }, 401, corsHeaders);
+  }
+
+  const guestLimit = inferGuestLimit(invite.label);
+  const parsed = parsePayload(raw, guestLimit);
   if (parsed.error) {
     return json({ ok: false, error: parsed.error }, 400, corsHeaders);
   }
 
-  const db = getDb(env);
   await db
     .prepare(
       `INSERT INTO rsvps (
