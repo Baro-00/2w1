@@ -11,11 +11,21 @@
 <body>
   <header class="topbar">
     <div class="container topbar-inner">
-      <div class="brand">
+      <a class="brand" href="/index.html" aria-label="Przejdź na stronę główną">
         <div class="brand-mark">2w1</div>
         <div>Impreza 2w1</div>
-      </div>
-      <nav class="nav" aria-label="Nawigacja">
+      </a>
+      <button
+        class="nav-toggle"
+        id="nav-toggle"
+        type="button"
+        aria-label="Przełącz menu"
+        aria-controls="site-nav"
+        aria-expanded="false"
+      >
+        <span class="nav-toggle-icon" aria-hidden="true">☰</span>
+      </button>
+      <nav class="nav" id="site-nav" aria-label="Nawigacja" data-open="false">
         <a href="#gdzie">Gdzie</a>
         <a href="#info">Info</a>
         <a href="#spotify">Spotify</a>
@@ -246,12 +256,12 @@
           <article class="section-card">
             <div class="icon-badge">📞</div>
             <h3>Dominika</h3>
-            <p>+48 531 936 110</p>
+            <p><a class="contact-link" href="tel:+48531936110">tel.: +48 531 936 110</a></p>
           </article>
           <article class="section-card">
             <div class="icon-badge">📞</div>
             <h3>Bartek</h3>
-            <p>+48 662 585 446</p>
+            <p><a class="contact-link" href="tel:+48662585446">tel.: +48 662 585 446</a></p>
           </article>
         </div>
       </div>
@@ -266,7 +276,24 @@
   </footer>
 
   <script>
+    const navToggle = document.getElementById('nav-toggle');
+    const siteNav = document.getElementById('site-nav');
     const codeForm = document.getElementById('code-form');
+
+    if (navToggle && siteNav) {
+      navToggle.addEventListener('click', () => {
+        const isOpen = siteNav.getAttribute('data-open') === 'true';
+        siteNav.setAttribute('data-open', String(!isOpen));
+        navToggle.setAttribute('aria-expanded', String(!isOpen));
+        navToggle.querySelector('.nav-toggle-icon').textContent = !isOpen ? '✕' : '☰';
+      });
+
+      siteNav.addEventListener('click', (event) => {
+        if (!event.target.closest('a')) return;
+        siteNav.setAttribute('data-open', 'false');
+        navToggle.setAttribute('aria-expanded', 'false');
+      });
+    }
 
     codeForm.addEventListener('submit', (event) => {
       event.preventDefault();

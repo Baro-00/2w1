@@ -9,11 +9,21 @@
 <body>
   <header class="topbar">
     <div class="container topbar-inner">
-      <div class="brand">
+      <a class="brand" href="/index.html" aria-label="Przejdź na stronę główną">
         <div class="brand-mark">2w1</div>
         <div>Impreza 2w1</div>
-      </div>
-      <nav class="nav" aria-label="Nawigacja">
+      </a>
+      <button
+        class="nav-toggle"
+        id="nav-toggle"
+        type="button"
+        aria-label="Przełącz menu"
+        aria-controls="site-nav"
+        aria-expanded="false"
+      >
+        <span class="nav-toggle-icon" aria-hidden="true">☰</span>
+      </button>
+      <nav class="nav" id="site-nav" aria-label="Nawigacja" data-open="false">
         <a href="/index.html">Start</a>
         <a href="/rsvp.html">Formularz</a>
       </nav>
@@ -70,6 +80,8 @@
     const uploadList = document.getElementById("upload-list");
     const galleryGrid = document.getElementById("gallery-grid");
     const loadMoreBtn = document.getElementById("load-more-btn");
+    const navToggle = document.getElementById("nav-toggle");
+    const siteNav = document.getElementById("site-nav");
     const previewModal = document.getElementById("preview-modal");
     const previewBody = document.getElementById("preview-body");
     const previewCloseBtn = document.getElementById("preview-close-btn");
@@ -82,6 +94,21 @@
     let nextCursor = null;
     let hasMore = false;
     let isLoadingMore = false;
+
+    if (navToggle && siteNav) {
+      navToggle.addEventListener("click", () => {
+        const isOpen = siteNav.getAttribute("data-open") === "true";
+        siteNav.setAttribute("data-open", String(!isOpen));
+        navToggle.setAttribute("aria-expanded", String(!isOpen));
+        navToggle.querySelector(".nav-toggle-icon").textContent = !isOpen ? "✕" : "☰";
+      });
+
+      siteNav.addEventListener("click", (event) => {
+        if (!event.target.closest("a")) return;
+        siteNav.setAttribute("data-open", "false");
+        navToggle.setAttribute("aria-expanded", "false");
+      });
+    }
 
     function openPreview(url, contentType, altText) {
       previewBody.innerHTML = "";
