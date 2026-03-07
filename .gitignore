@@ -6,3 +6,5 @@ node_modules/
 .env
 .env.*
 *.log
+
+sql/010_populate.sql

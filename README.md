@@ -19,10 +19,12 @@ SQL do stworzenia schematu znajduje sie w:
 
 Pliki:
 
-- `scripts/api/login.js`
-- `scripts/api/me.js`
-- `scripts/api/rsvp.js`
-- `scripts/api/logout.js`
+- `site/functions/api/login.js`
+- `site/functions/api/me.js`
+- `site/functions/api/rsvp.js`
+- `site/functions/api/logout.js`
+- `site/functions/api/gallery.js`
+- `site/functions/api/gallery-file.js`
 
 Flow:
 
@@ -31,3 +33,12 @@ Flow:
 3. `GET /api/me` zwraca dane zaproszenia i zapisany formularz
 4. `POST /api/rsvp` zapisuje/aktualizuje odpowiedz
 5. `POST /api/logout` kasuje sesje
+6. `GET /api/gallery` zwraca liste plikow galerii
+7. `POST /api/gallery` uploaduje wiele plikow (`multipart/form-data`, pole `files`)
+8. `GET /api/gallery-file?key=...` zwraca plik z R2
+
+### R2 (galeria)
+
+Dodaj binding R2 w `wrangler.jsonc`:
+
+- `MEDIA` -> bucket na zdjecia/filmy

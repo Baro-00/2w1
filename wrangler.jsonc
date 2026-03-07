@@ -8,5 +8,11 @@
       "database_name": "2w1",
       "database_id": "78b20bd9-af52-430b-9c11-f53541c45aeb"
     }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "MEDIA",
+      "bucket_name": "2w1"
+    }
   ]
 }

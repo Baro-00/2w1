@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Galeria | Impreza 2w1</title>
+  <link rel="stylesheet" href="styles/main.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <div class="brand">
+        <div class="brand-mark">2w1</div>
+        <div>Impreza 2w1</div>
+      </div>
+      <nav class="nav" aria-label="Nawigacja">
+        <a href="/index.html">Start</a>
+        <a href="/rsvp.html">Formularz</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="section">
+    <div class="container">
+      <article class="info-card">
+        <h1 style="font-size: clamp(30px, 4.5vw, 52px); margin-bottom: 8px;">Galeria</h1>
+        <p id="status-text">Wrzuć zdjęcia i filmiki z telefonu. Możesz zaznaczyć wiele plików naraz.</p>
+
+        <form id="upload-form" class="form-row" enctype="multipart/form-data" style="margin-top: 18px;">
+          <input id="file-input" class="input" type="file" name="files" multiple accept="image/*,video/*" />
+          <button class="btn btn-primary" type="submit">Wyślij pliki</button>
+          <button class="btn btn-secondary" type="button" id="refresh-btn">Odśwież</button>
+        </form>
+      </article>
+
+      <section class="section" style="padding-top: 20px;">
+        <div id="gallery-grid" class="gallery-grid"></div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const statusText = document.getElementById("status-text");
+    const uploadForm = document.getElementById("upload-form");
+    const fileInput = document.getElementById("file-input");
+    const refreshBtn = document.getElementById("refresh-btn");
+    const galleryGrid = document.getElementById("gallery-grid");
+
+    function setStatus(text) {
+      statusText.textContent = text;
+    }
+
+    function isVideo(contentType) {
+      return String(contentType || "").startsWith("video/");
+    }
+
+    function renderItems(items) {
+      if (!items || items.length === 0) {
+        galleryGrid.innerHTML = "<p style='color: var(--muted);'>Brak plików w galerii.</p>";
+        return;
+      }
+
+      galleryGrid.innerHTML = "";
+
+      for (const item of items) {
+        const card = document.createElement("article");
+        card.className = "gallery-item";
+
+        if (isVideo(item.contentType)) {
+          const video = document.createElement("video");
+          video.src = item.url;
+          video.controls = true;
+          video.preload = "metadata";
+          video.className = "gallery-media";
+          card.appendChild(video);
+        } else {
+          const img = document.createElement("img");
+          img.src = item.url;
+          img.loading = "lazy";
+          img.alt = item.key;
+          img.className = "gallery-media";
+          card.appendChild(img);
+        }
+
+        const meta = document.createElement("div");
+        meta.className = "gallery-meta";
+        meta.textContent = item.key;
+        card.appendChild(meta);
+
+        galleryGrid.appendChild(card);
+      }
+    }
+
+    async function loadGallery() {
+      setStatus("Ładowanie galerii...");
+      const response = await fetch("/api/gallery");
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error || "Nie udało się pobrać galerii.");
+      }
+      renderItems(data.items);
+      setStatus(`Plików w galerii: ${data.items.length}`);
+    }
+
+    uploadForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const files = fileInput.files;
+      if (!files || files.length === 0) {
+        setStatus("Wybierz przynajmniej jeden plik.");
+        return;
+      }
+
+      const formData = new FormData();
+      for (const file of files) {
+        formData.append("files", file);
+      }
+
+      try {
+        setStatus(`Wysyłanie ${files.length} plików...`);
+        const response = await fetch("/api/gallery", {
+          method: "POST",
+          body: formData,
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.ok) {
+          throw new Error(data.error || "Upload nieudany.");
+        }
+        fileInput.value = "";
+        setStatus(`Dodano: ${data.uploaded.length} plików.`);
+        await loadGallery();
+      } catch (error) {
+        setStatus(error.message);
+      }
+    });
+
+    refreshBtn.addEventListener("click", async () => {
+      try {
+        await loadGallery();
+      } catch (error) {
+        setStatus(error.message);
+      }
+    });
+
+    (async () => {
+      try {
+        await loadGallery();
+      } catch (error) {
+        setStatus(error.message);
+      }
+    })();
+  </script>
+</body>
+</html>
