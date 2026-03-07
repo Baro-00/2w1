@@ -46,7 +46,6 @@
                 <option value="">Bez preferencji</option>
                 <option value="standard">Standard</option>
                 <option value="vegetarian">Wegetarianskie</option>
-                <option value="vegan">Weganskie</option>
               </select>
             </div>
           </div>
@@ -61,11 +60,11 @@
             <div class="cards-3" id="lodging-fields" style="margin-top: 16px; display:none;">
               <label>
                 Od
-                <input class="input" type="date" name="lodgingFrom" />
+                <input class="input" type="date" name="lodgingFrom" min="2026-06-03" max="2026-06-07" />
               </label>
               <label>
                 Do
-                <input class="input" type="date" name="lodgingTo" />
+                <input class="input" type="date" name="lodgingTo" min="2026-06-03" max="2026-06-07" />
               </label>
               <label>
                 Liczba osob
@@ -102,6 +101,9 @@
     const codeInput = document.getElementById("code");
     const logoutBtn = document.getElementById("logout-btn");
     const lodgingFields = document.getElementById("lodging-fields");
+    const LODGING_MIN = "2026-06-03";
+    const LODGING_MAX = "2026-06-07";
+    const ALLOWED_MENU = new Set(["", "standard", "vegetarian"]);
 
     function setStatus(message) {
       statusText.textContent = message;
@@ -219,6 +221,22 @@
         roomPeople: rsvpForm.elements.roomPeople.value || null,
         notes: rsvpForm.elements.notes.value || null,
       };
+
+      if (!ALLOWED_MENU.has(payload.menuChoice)) {
+        setStatus("Dozwolone opcje menu: Standard lub Wegetarianskie.");
+        return;
+      }
+
+      if (
+        payload.lodgingNeeded &&
+        (
+          (payload.lodgingFrom && (payload.lodgingFrom < LODGING_MIN || payload.lodgingFrom > LODGING_MAX)) ||
+          (payload.lodgingTo && (payload.lodgingTo < LODGING_MIN || payload.lodgingTo > LODGING_MAX))
+        )
+      ) {
+        setStatus("Nocleg mozna wybrac tylko w zakresie 03.06.2026-07.06.2026.");
+        return;
+      }
 
       setStatus("Zapisywanie RSVP...");
       try {

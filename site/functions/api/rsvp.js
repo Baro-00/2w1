@@ -6,6 +6,10 @@ import {
   requireSessionCode,
 } from "./_lib.js";
 
+const LODGING_MIN = "2026-06-03";
+const LODGING_MAX = "2026-06-07";
+const ALLOWED_MENU = new Set(["standard", "vegetarian", ""]);
+
 function normalizeBoolean(value) {
   if (typeof value === "boolean") return value;
   if (typeof value === "number") return value !== 0;
@@ -45,13 +49,29 @@ function parsePayload(raw) {
     }
   }
 
-  const menuChoice = String(raw.menuChoice || "").trim().slice(0, 64) || null;
+  const menuChoice = String(raw.menuChoice || "").trim().toLowerCase().slice(0, 64);
+  if (!ALLOWED_MENU.has(menuChoice)) {
+    return { error: "menuChoice must be one of: standard, vegetarian." };
+  }
+
+  if (lodgingNeeded) {
+    if (lodgingFrom < LODGING_MIN || lodgingFrom > LODGING_MAX) {
+      return { error: "lodgingFrom must be between 2026-06-03 and 2026-06-07." };
+    }
+    if (lodgingTo < LODGING_MIN || lodgingTo > LODGING_MAX) {
+      return { error: "lodgingTo must be between 2026-06-03 and 2026-06-07." };
+    }
+    if (lodgingFrom > lodgingTo) {
+      return { error: "lodgingFrom cannot be after lodgingTo." };
+    }
+  }
+
   const notes = String(raw.notes || "").trim().slice(0, 1000) || null;
 
   return {
     payload: {
       attending: attending ? 1 : 0,
-      menuChoice,
+      menuChoice: menuChoice || null,
       lodgingNeeded: lodgingNeeded == null ? null : lodgingNeeded ? 1 : 0,
       lodgingFrom: lodgingNeeded ? lodgingFrom : null,
       lodgingTo: lodgingNeeded ? lodgingTo : null,
