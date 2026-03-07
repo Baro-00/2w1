@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RSVP | Impreza 2w1</title>
+  <link rel="stylesheet" href="styles/main.css" />
+</head>
+<body>
+  <main class="section">
+    <div class="container" style="max-width: 760px;">
+      <article class="info-card">
+        <h1 style="font-size: clamp(28px, 4vw, 44px); margin-bottom: 12px;">RSVP</h1>
+        <p id="status-text">Wpisz kod z zaproszenia (6 znakow), aby przejsc do formularza.</p>
+
+        <form id="login-form" class="form-row" style="margin-top: 18px;">
+          <input
+            class="input"
+            type="text"
+            id="code"
+            name="code"
+            maxlength="6"
+            minlength="6"
+            pattern="[A-Za-z0-9]{6}"
+            placeholder="Np. A7K3P9"
+            autocomplete="off"
+            spellcheck="false"
+            required
+          />
+          <button class="btn btn-primary" type="submit">Zaloguj kodem</button>
+        </form>
+
+        <form id="rsvp-form" style="display:none; margin-top: 24px;">
+          <div class="cards-2">
+            <div class="section-card" style="padding: 18px; box-shadow: none;">
+              <h3>Czy bedziesz z nami?</h3>
+              <div class="form-row" style="margin-top: 12px;">
+                <label><input type="radio" name="attending" value="yes" required /> Tak</label>
+                <label><input type="radio" name="attending" value="no" /> Nie</label>
+              </div>
+            </div>
+
+            <div class="section-card" style="padding: 18px; box-shadow: none;">
+              <h3>Menu</h3>
+              <select class="input" name="menuChoice" id="menuChoice" style="border-radius: 14px;">
+                <option value="">Bez preferencji</option>
+                <option value="standard">Standard</option>
+                <option value="vegetarian">Wegetarianskie</option>
+                <option value="vegan">Weganskie</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="section-card" style="padding: 18px; box-shadow: none; margin-top: 18px;">
+            <h3>Nocleg</h3>
+            <div class="form-row" style="margin-top: 12px;">
+              <label><input type="radio" name="lodgingNeeded" value="yes" /> Potrzebuje noclegu</label>
+              <label><input type="radio" name="lodgingNeeded" value="no" checked /> Nie potrzebuje</label>
+            </div>
+
+            <div class="cards-3" id="lodging-fields" style="margin-top: 16px; display:none;">
+              <label>
+                Od
+                <input class="input" type="date" name="lodgingFrom" />
+              </label>
+              <label>
+                Do
+                <input class="input" type="date" name="lodgingTo" />
+              </label>
+              <label>
+                Liczba osob
+                <input class="input" type="number" name="roomPeople" min="1" max="8" step="1" />
+              </label>
+            </div>
+          </div>
+
+          <div class="section-card" style="padding: 18px; box-shadow: none; margin-top: 18px;">
+            <h3>Uwagi</h3>
+            <textarea
+              class="input"
+              name="notes"
+              rows="5"
+              maxlength="1000"
+              placeholder="Np. alergie, dodatkowe informacje"
+              style="border-radius: 14px; width: 100%;"
+            ></textarea>
+          </div>
+
+          <div class="hero-actions">
+            <button class="btn btn-primary" type="submit">Zapisz RSVP</button>
+            <button class="btn btn-secondary" type="button" id="logout-btn">Wyloguj</button>
+          </div>
+        </form>
+      </article>
+    </div>
+  </main>
+
+  <script>
+    const loginForm = document.getElementById("login-form");
+    const rsvpForm = document.getElementById("rsvp-form");
+    const statusText = document.getElementById("status-text");
+    const codeInput = document.getElementById("code");
+    const logoutBtn = document.getElementById("logout-btn");
+    const lodgingFields = document.getElementById("lodging-fields");
+
+    function setStatus(message) {
+      statusText.textContent = message;
+    }
+
+    function normalizeCode(value) {
+      return String(value || "").trim().toUpperCase();
+    }
+
+    function setLoggedIn(invite) {
+      loginForm.style.display = "none";
+      rsvpForm.style.display = "block";
+      setStatus("Zalogowano: " + (invite?.label || invite?.code || "kod zaproszenia"));
+    }
+
+    function setLoggedOut() {
+      loginForm.style.display = "flex";
+      rsvpForm.style.display = "none";
+      setStatus("Wpisz kod z zaproszenia (6 znakow), aby przejsc do formularza.");
+    }
+
+    function toggleLodgingFields() {
+      const selected = rsvpForm.querySelector("input[name='lodgingNeeded']:checked");
+      const show = selected && selected.value === "yes";
+      lodgingFields.style.display = show ? "grid" : "none";
+    }
+
+    async function tryLogin(code) {
+      const response = await fetch("/api/login", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error || "Nie udalo sie zalogowac.");
+      }
+      return data;
+    }
+
+    function fillForm(rsvp) {
+      if (!rsvp) return;
+
+      const attending = Number(rsvp.attending) === 1 ? "yes" : "no";
+      const attendingInput = rsvpForm.querySelector("input[name='attending'][value='" + attending + "']");
+      if (attendingInput) attendingInput.checked = true;
+
+      if (rsvp.menu_choice) {
+        rsvpForm.elements.menuChoice.value = rsvp.menu_choice;
+      }
+
+      const lodgingNeeded = Number(rsvp.lodging_needed) === 1 ? "yes" : "no";
+      const lodgingInput = rsvpForm.querySelector("input[name='lodgingNeeded'][value='" + lodgingNeeded + "']");
+      if (lodgingInput) lodgingInput.checked = true;
+
+      rsvpForm.elements.lodgingFrom.value = rsvp.lodging_from || "";
+      rsvpForm.elements.lodgingTo.value = rsvp.lodging_to || "";
+      rsvpForm.elements.roomPeople.value = rsvp.room_people || "";
+      rsvpForm.elements.notes.value = rsvp.notes || "";
+      toggleLodgingFields();
+    }
+
+    async function loadSession() {
+      const response = await fetch("/api/me", { method: "GET" });
+      if (response.status === 401) {
+        setLoggedOut();
+        return;
+      }
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error || "Blad pobierania sesji.");
+      }
+
+      setLoggedIn(data.invite);
+      fillForm(data.rsvp);
+    }
+
+    loginForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const code = normalizeCode(codeInput.value);
+      if (!/^[A-Z0-9]{6}$/.test(code)) {
+        setStatus("Kod musi miec dokladnie 6 znakow (A-Z, 0-9).");
+        codeInput.focus();
+        return;
+      }
+
+      setStatus("Logowanie...");
+      try {
+        await tryLogin(code);
+        await loadSession();
+      } catch (error) {
+        setStatus(error.message);
+      }
+    });
+
+    rsvpForm.addEventListener("change", (event) => {
+      if (event.target && event.target.name === "lodgingNeeded") {
+        toggleLodgingFields();
+      }
+    });
+
+    rsvpForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const attending = rsvpForm.querySelector("input[name='attending']:checked");
+      const lodgingNeeded = rsvpForm.querySelector("input[name='lodgingNeeded']:checked");
+
+      const payload = {
+        attending: attending ? attending.value === "yes" : null,
+        menuChoice: rsvpForm.elements.menuChoice.value,
+        lodgingNeeded: lodgingNeeded ? lodgingNeeded.value === "yes" : false,
+        lodgingFrom: rsvpForm.elements.lodgingFrom.value || null,
+        lodgingTo: rsvpForm.elements.lodgingTo.value || null,
+        roomPeople: rsvpForm.elements.roomPeople.value || null,
+        notes: rsvpForm.elements.notes.value || null,
+      };
+
+      setStatus("Zapisywanie RSVP...");
+      try {
+        const response = await fetch("/api/rsvp", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.ok) {
+          throw new Error(data.error || "Nie udalo sie zapisac RSVP.");
+        }
+        setStatus("RSVP zapisane.");
+      } catch (error) {
+        setStatus(error.message);
+      }
+    });
+
+    logoutBtn.addEventListener("click", async () => {
+      await fetch("/api/logout", { method: "POST" });
+      setLoggedOut();
+      codeInput.focus();
+    });
+
+    (async () => {
+      const url = new URL(window.location.href);
+      const codeFromQuery = normalizeCode(url.searchParams.get("code"));
+      if (/^[A-Z0-9]{6}$/.test(codeFromQuery)) {
+        try {
+          setStatus("Logowanie kodem z linku...");
+          await tryLogin(codeFromQuery);
+          url.searchParams.delete("code");
+          history.replaceState({}, "", url.pathname);
+        } catch (_) {
+          // Keep manual login flow.
+        }
+      }
+
+      try {
+        await loadSession();
+      } catch (error) {
+        setStatus(error.message);
+      }
+      toggleLodgingFields();
+    })();
+  </script>
+</body>
+</html>
