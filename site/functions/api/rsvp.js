@@ -8,7 +8,7 @@ import {
 
 const LODGING_MIN = "2026-06-03";
 const LODGING_MAX = "2026-06-07";
-const ALLOWED_MENU = new Set(["standard", "vegetarian", ""]);
+const ALLOWED_MENU = new Set(["standard", "vegetarian", "kids", ""]);
 
 function normalizeBoolean(value) {
   if (typeof value === "boolean") return value;
@@ -35,15 +35,15 @@ function normalizeText(value) {
     .replace(/[\u0300-\u036f]/g, "");
 }
 
-function inferGuestLimit(label) {
+function inferGuestMeta(label) {
   const normalized = normalizeText(label);
-  if (/(z rodzina|z dziec)/.test(normalized)) return 8;
-  if (/(z os\.?\s*towarz|z os towarz)/.test(normalized)) return 2;
-  if (/\bi\b/.test(normalized) || String(label || "").includes(",")) return 2;
-  return 1;
+  if (/(z rodzina|z dziec)/.test(normalized)) return { kind: "family", limit: 4 };
+  if (/(z os\.?\s*towarz|z os towarz)/.test(normalized)) return { kind: "pair", limit: 2 };
+  if (/\bi\b/.test(normalized) || String(label || "").includes(",")) return { kind: "pair", limit: 2 };
+  return { kind: "single", limit: 1 };
 }
 
-function parseMenuChoices(raw, guestLimit) {
+function parseMenuChoices(raw, guestLimit, inviteKind) {
   const normalizeChoice = (value) => String(value || "").trim().toLowerCase().slice(0, 64);
   let choices = [];
 
@@ -56,7 +56,10 @@ function parseMenuChoices(raw, guestLimit) {
 
   for (const choice of choices) {
     if (!ALLOWED_MENU.has(choice)) {
-      return { error: "menuChoice must be one of: standard, vegetarian." };
+      return { error: "menuChoice must be one of: standard, vegetarian, kids." };
+    }
+    if (choice === "kids" && inviteKind !== "family") {
+      return { error: "menuChoice 'kids' is allowed only for family invites." };
     }
   }
 
@@ -68,7 +71,7 @@ function parseMenuChoices(raw, guestLimit) {
   return { value: JSON.stringify({ choices }) };
 }
 
-function parsePayload(raw, guestLimit) {
+function parsePayload(raw, guestLimit, inviteKind) {
   const attending = normalizeBoolean(raw.attending);
   if (attending === null) return { error: "attending is required." };
 
@@ -89,7 +92,7 @@ function parsePayload(raw, guestLimit) {
     }
   }
 
-  const menu = parseMenuChoices(raw, guestLimit);
+  const menu = parseMenuChoices(raw, guestLimit, inviteKind);
   if (menu.error) {
     return { error: menu.error };
   }
@@ -148,8 +151,8 @@ export async function onRequestPost(context) {
     return json({ ok: false, error: "Unauthorized" }, 401, corsHeaders);
   }
 
-  const guestLimit = inferGuestLimit(invite.label);
-  const parsed = parsePayload(raw, guestLimit);
+  const guestMeta = inferGuestMeta(invite.label);
+  const parsed = parsePayload(raw, guestMeta.limit, guestMeta.kind);
   if (parsed.error) {
     return json({ ok: false, error: parsed.error }, 400, corsHeaders);
   }

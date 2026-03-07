@@ -43,7 +43,7 @@
 
             <div class="section-card" style="padding: 18px; box-shadow: none;">
               <h3>Menu</h3>
-              <p style="margin-top: 10px; color: var(--muted);">Wybierz dietę osobno dla każdej osoby.</p>
+              <p style="margin-top: 10px; color: var(--muted);">Wybierz dietę dla każdej osoby.</p>
               <div id="menu-per-person" class="cards-2" style="margin-top: 12px;"></div>
             </div>
           </div>
@@ -105,13 +105,15 @@
     const menuContainer = document.getElementById("menu-per-person");
     const LODGING_MIN = "2026-06-03";
     const LODGING_MAX = "2026-06-07";
-    const ALLOWED_MENU = new Set(["", "standard", "vegetarian"]);
+    const ALLOWED_MENU = new Set(["", "standard", "vegetarian", "kids"]);
     const MENU_LABELS = {
       standard: "Standard",
       vegetarian: "Wegetariańskie",
+      kids: "Dziecięce",
       "": "Bez preferencji",
     };
     let partyLimit = 1;
+    let partyKind = "single";
 
     function setStatus(message) {
       statusText.textContent = message;
@@ -132,7 +134,7 @@
       const label = String(invite?.label || "");
       const normalized = normalizeText(label);
       if (/(z rodzina|z dziec)/.test(normalized)) {
-        return { kind: "family", limit: 8 };
+        return { kind: "family", limit: 4 };
       }
       if (/(z os\.?\s*towarz|z os towarz)/.test(normalized)) {
         return { kind: "pair", limit: 2 };
@@ -143,8 +145,9 @@
       return { kind: "single", limit: 1 };
     }
 
-    function renderMenuFields(limit) {
+    function renderMenuFields(limit, kind) {
       menuContainer.innerHTML = "";
+      const menuOptions = kind === "family" ? ["", "standard", "vegetarian", "kids"] : ["", "standard", "vegetarian"];
       for (let i = 1; i <= limit; i += 1) {
         const label = document.createElement("label");
         label.textContent = "Osoba " + i;
@@ -153,7 +156,7 @@
         select.dataset.menuPerson = String(i);
         select.style.borderRadius = "14px";
 
-        for (const value of ["", "standard", "vegetarian"]) {
+        for (const value of menuOptions) {
           const option = document.createElement("option");
           option.value = value;
           option.textContent = MENU_LABELS[value];
@@ -210,8 +213,9 @@
     function applyInviteLimits(invite) {
       const meta = inferGuestMeta(invite);
       partyLimit = meta.limit;
+      partyKind = meta.kind;
 
-      renderMenuFields(partyLimit);
+      renderMenuFields(partyLimit, partyKind);
       const roomPeopleInput = rsvpForm.elements.roomPeople;
       roomPeopleInput.max = String(partyLimit);
       if (Number(roomPeopleInput.value) > partyLimit) {
@@ -245,7 +249,8 @@
       inviteHints.style.display = "none";
       lodgingLimitHint.style.display = "none";
       partyLimit = 1;
-      renderMenuFields(1);
+      partyKind = "single";
+      renderMenuFields(1, partyKind);
     }
 
     function toggleLodgingFields() {
@@ -350,6 +355,11 @@
       };
 
       if (payload.menuChoices.some((choice) => !ALLOWED_MENU.has(choice))) {
+        setStatus("Dozwolone opcje menu: Standard, Wegetariańskie" + (partyKind === "family" ? " lub Dziecięce." : "."));
+        return;
+      }
+
+      if (partyKind !== "family" && payload.menuChoices.includes("kids")) {
         setStatus("Dozwolone opcje menu: Standard lub Wegetariańskie.");
         return;
       }
@@ -395,7 +405,7 @@
     });
 
     (async () => {
-      renderMenuFields(1);
+      renderMenuFields(1, partyKind);
       const url = new URL(window.location.href);
       const codeFromQuery = normalizeCode(url.searchParams.get("code"));
       if (/^[A-Z0-9]{6}$/.test(codeFromQuery)) {
