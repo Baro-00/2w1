@@ -57,10 +57,10 @@ function parseMenuChoices(raw, guestLimit, inviteKind) {
 
   if (choices.length <= 1) {
     const single = choices[0] || "";
-    return { value: single || null };
+    return { value: single || null, choices: single ? [single] : [] };
   }
 
-  return { value: JSON.stringify({ choices }) };
+  return { value: JSON.stringify({ choices }), choices };
 }
 
 function parsePayload(raw, guestLimit, inviteKind) {
@@ -107,6 +107,7 @@ function parsePayload(raw, guestLimit, inviteKind) {
     payload: {
       attending: attending ? 1 : 0,
       menuChoice: menu.value,
+      menuChoices: menu.choices || [],
       lodgingNeeded: lodgingNeeded == null ? null : lodgingNeeded ? 1 : 0,
       lodgingFrom: lodgingNeeded ? lodgingFrom : null,
       lodgingTo: lodgingNeeded ? lodgingTo : null,
@@ -183,6 +184,25 @@ export async function onRequestPost(context) {
       parsed.payload.notes
     )
     .run();
+
+  await db.prepare("DELETE FROM rsvp_menu_choices WHERE code = ?1").bind(code).run();
+
+  const choicesToSave = parsed.payload.menuChoices
+    .map((choice, index) => ({ personNo: index + 1, choice }))
+    .filter((entry) => entry.choice);
+
+  for (const entry of choicesToSave) {
+    await db
+      .prepare(
+        `INSERT INTO rsvp_menu_choices (code, person_no, menu_choice, updated_at)
+         VALUES (?1, ?2, ?3, CURRENT_TIMESTAMP)
+         ON CONFLICT(code, person_no) DO UPDATE SET
+           menu_choice = excluded.menu_choice,
+           updated_at = CURRENT_TIMESTAMP`
+      )
+      .bind(code, entry.personNo, entry.choice)
+      .run();
+  }
 
   return json({ ok: true }, 200, corsHeaders);
 }

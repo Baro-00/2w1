@@ -20,3 +20,12 @@ CREATE TABLE IF NOT EXISTS rsvps (
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (code) REFERENCES invites(code) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS rsvp_menu_choices (
+  code TEXT NOT NULL,
+  person_no INTEGER NOT NULL CHECK(person_no >= 1 AND person_no <= 4),
+  menu_choice TEXT NOT NULL CHECK(menu_choice IN ('standard', 'vegetarian', 'kids')),
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (code, person_no),
+  FOREIGN KEY (code) REFERENCES rsvps(code) ON DELETE CASCADE
+);

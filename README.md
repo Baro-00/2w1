@@ -11,6 +11,8 @@ SQL do stworzenia schematu znajduje sie w:
 - `sql/003_seed_invites_example.sql` (opcjonalnie, przykladowe kody)
 - `sql/011_add_people_count_to_invites.sql` (migracja dla istniejacej bazy)
 - `sql/012_backfill_people_count.sql` (uzupelnienie people_count na podstawie etykiet)
+- `sql/013_create_rsvp_menu_choices.sql` (tabela diet per osoba)
+- `sql/014_backfill_rsvp_menu_choices.sql` (przeniesienie diet z rsvps.menu_choice)
 
 ### Wymagane bindingi / sekrety
 
@@ -40,6 +42,7 @@ Flow:
 8. `GET /api/gallery-file?key=...` zwraca plik z R2
 
 `invites.people_count` steruje limitem osob w formularzu RSVP (nocleg + liczba pol menu).
+Diety per osoba sa trzymane w `rsvp_menu_choices` (z zachowaniem kompatybilnosci z `rsvps.menu_choice`).
 
 ### Cloudflare R2 (galeria)
 

@@ -41,6 +41,20 @@ export async function onRequestGet(context) {
     .bind(code)
     .first();
 
+  const menuRowsResult = await db
+    .prepare(
+      `SELECT person_no, menu_choice
+       FROM rsvp_menu_choices
+       WHERE code = ?1
+       ORDER BY person_no ASC`
+    )
+    .bind(code)
+    .all();
+  const menuRows = menuRowsResult?.results || [];
+  if (rsvp && menuRows.length) {
+    rsvp.menu_choices = menuRows.map((row) => row.menu_choice).filter(Boolean);
+  }
+
   return json(
     {
       ok: true,

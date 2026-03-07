@@ -264,7 +264,9 @@
       const attendingInput = rsvpForm.querySelector("input[name='attending'][value='" + attending + "']");
       if (attendingInput) attendingInput.checked = true;
 
-      const menuChoices = parseStoredMenuChoices(rsvp.menu_choice, partyLimit);
+      const menuChoices = Array.isArray(rsvp.menu_choices) && rsvp.menu_choices.length
+        ? rsvp.menu_choices.map((choice) => String(choice || "").trim().toLowerCase()).slice(0, partyLimit)
+        : parseStoredMenuChoices(rsvp.menu_choice, partyLimit);
       const selects = menuContainer.querySelectorAll("select[data-menu-person]");
       menuChoices.forEach((choice, idx) => {
         if (selects[idx]) {
