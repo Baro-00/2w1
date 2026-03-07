@@ -20,6 +20,28 @@ function json(payload, status = 200, extraHeaders = {}) {
   });
 }
 
+function getCorsHeaders(request) {
+  const origin = request.headers.get("origin");
+  if (!origin) return {};
+  return {
+    "access-control-allow-origin": origin,
+    "access-control-allow-credentials": "true",
+    "access-control-allow-headers": "content-type",
+    "access-control-allow-methods": "GET,POST,OPTIONS",
+    vary: "Origin",
+  };
+}
+
+function optionsResponse(request) {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      ...getCorsHeaders(request),
+      "cache-control": "no-store",
+    },
+  });
+}
+
 function getDb(env) {
   const db = env.DB || env.RSVP_DB;
   if (!db) {
@@ -155,6 +177,8 @@ export {
   getCookieSecret,
   getDb,
   json,
+  getCorsHeaders,
+  optionsResponse,
   readCookie,
   requireSessionCode,
   unauthorized,

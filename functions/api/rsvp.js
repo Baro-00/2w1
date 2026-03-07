@@ -1,9 +1,9 @@
 import {
-  badRequest,
+  getCorsHeaders,
   getDb,
   json,
+  optionsResponse,
   requireSessionCode,
-  unauthorized,
 } from "./_lib.js";
 
 function normalizeBoolean(value) {
@@ -63,24 +63,25 @@ function parsePayload(raw) {
 
 export async function onRequestPost(context) {
   const { request, env } = context;
+  const corsHeaders = getCorsHeaders(request);
   const code = await requireSessionCode(request, env);
   if (!code) {
-    return unauthorized();
+    return json({ ok: false, error: "Unauthorized" }, 401, corsHeaders);
   }
 
   const contentType = request.headers.get("content-type") || "";
   if (!contentType.includes("application/json")) {
-    return badRequest("Use application/json.");
+    return json({ ok: false, error: "Use application/json." }, 400, corsHeaders);
   }
 
   const raw = await request.json().catch(() => null);
   if (!raw || typeof raw !== "object") {
-    return badRequest("Invalid JSON payload.");
+    return json({ ok: false, error: "Invalid JSON payload." }, 400, corsHeaders);
   }
 
   const parsed = parsePayload(raw);
   if (parsed.error) {
-    return badRequest(parsed.error);
+    return json({ ok: false, error: parsed.error }, 400, corsHeaders);
   }
 
   const db = getDb(env);
@@ -119,12 +120,15 @@ export async function onRequestPost(context) {
     )
     .run();
 
-  return json({ ok: true });
+  return json({ ok: true }, 200, corsHeaders);
 }
 
 export async function onRequest(context) {
+  if (context.request.method === "OPTIONS") {
+    return optionsResponse(context.request);
+  }
   if (context.request.method !== "POST") {
-    return json({ ok: false, error: "Method Not Allowed" }, 405);
+    return json({ ok: false, error: "Method Not Allowed" }, 405, getCorsHeaders(context.request));
   }
   return onRequestPost(context);
 }

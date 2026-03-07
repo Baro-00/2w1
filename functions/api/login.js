@@ -2,9 +2,11 @@ import {
   badRequest,
   buildSetCookie,
   encodeSession,
+  getCorsHeaders,
   getCookieSecret,
   getDb,
   json,
+  optionsResponse,
   validateCode,
 } from "./_lib.js";
 
@@ -27,9 +29,10 @@ async function extractCode(request) {
 
 export async function onRequestPost(context) {
   const { request, env } = context;
+  const corsHeaders = getCorsHeaders(request);
   const code = validateCode(await extractCode(request));
   if (!code) {
-    return badRequest("Code must have 6 letters/digits.");
+    return json({ ok: false, error: "Code must have 6 letters/digits." }, 400, corsHeaders);
   }
 
   const db = getDb(env);
@@ -39,7 +42,7 @@ export async function onRequestPost(context) {
     .first();
 
   if (!found) {
-    return json({ ok: false, error: "Invalid code." }, 401);
+    return json({ ok: false, error: "Invalid code." }, 401, corsHeaders);
   }
 
   const secret = getCookieSecret(env);
@@ -48,13 +51,16 @@ export async function onRequestPost(context) {
   return json(
     { ok: true, invite: { code: found.code, label: found.label } },
     200,
-    { "set-cookie": buildSetCookie(token) }
+    { "set-cookie": buildSetCookie(token), ...corsHeaders }
   );
 }
 
 export async function onRequest(context) {
+  if (context.request.method === "OPTIONS") {
+    return optionsResponse(context.request);
+  }
   if (context.request.method !== "POST") {
-    return json({ ok: false, error: "Method Not Allowed" }, 405);
+    return json({ ok: false, error: "Method Not Allowed" }, 405, getCorsHeaders(context.request));
   }
   return onRequestPost(context);
 }

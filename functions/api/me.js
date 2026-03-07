@@ -1,10 +1,17 @@
-import { getDb, json, requireSessionCode, unauthorized } from "./_lib.js";
+import {
+  getCorsHeaders,
+  getDb,
+  json,
+  optionsResponse,
+  requireSessionCode,
+} from "./_lib.js";
 
 export async function onRequestGet(context) {
   const { request, env } = context;
+  const corsHeaders = getCorsHeaders(request);
   const code = await requireSessionCode(request, env);
   if (!code) {
-    return unauthorized();
+    return json({ ok: false, error: "Unauthorized" }, 401, corsHeaders);
   }
 
   const db = getDb(env);
@@ -14,7 +21,7 @@ export async function onRequestGet(context) {
     .first();
 
   if (!invite) {
-    return unauthorized();
+    return json({ ok: false, error: "Unauthorized" }, 401, corsHeaders);
   }
 
   const rsvp = await db
@@ -34,16 +41,23 @@ export async function onRequestGet(context) {
     .bind(code)
     .first();
 
-  return json({
-    ok: true,
-    invite,
-    rsvp: rsvp || null,
-  });
+  return json(
+    {
+      ok: true,
+      invite,
+      rsvp: rsvp || null,
+    },
+    200,
+    corsHeaders
+  );
 }
 
 export async function onRequest(context) {
+  if (context.request.method === "OPTIONS") {
+    return optionsResponse(context.request);
+  }
   if (context.request.method !== "GET") {
-    return json({ ok: false, error: "Method Not Allowed" }, 405);
+    return json({ ok: false, error: "Method Not Allowed" }, 405, getCorsHeaders(context.request));
   }
   return onRequestGet(context);
 }
