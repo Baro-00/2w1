@@ -28,19 +28,11 @@ function normalizeDate(value) {
   return text;
 }
 
-function normalizeText(value) {
-  return String(value || "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-}
-
-function inferGuestMeta(label) {
-  const normalized = normalizeText(label);
-  if (/(z rodzina|z dziec)/.test(normalized)) return { kind: "family", limit: 4 };
-  if (/(z os\.?\s*towarz|z os towarz)/.test(normalized)) return { kind: "pair", limit: 2 };
-  if (/\bi\b/.test(normalized) || String(label || "").includes(",")) return { kind: "pair", limit: 2 };
-  return { kind: "single", limit: 1 };
+function getGuestMeta(peopleCountRaw) {
+  const peopleCount = Number(peopleCountRaw);
+  const limit = Number.isInteger(peopleCount) && peopleCount >= 1 && peopleCount <= 4 ? peopleCount : 1;
+  const kind = limit >= 3 ? "family" : limit === 2 ? "pair" : "single";
+  return { kind, limit };
 }
 
 function parseMenuChoices(raw, guestLimit, inviteKind) {
@@ -144,14 +136,14 @@ export async function onRequestPost(context) {
 
   const db = getDb(env);
   const invite = await db
-    .prepare("SELECT label FROM invites WHERE code = ?1 AND active = 1")
+    .prepare("SELECT people_count FROM invites WHERE code = ?1 AND active = 1")
     .bind(code)
     .first();
   if (!invite) {
     return json({ ok: false, error: "Unauthorized" }, 401, corsHeaders);
   }
 
-  const guestMeta = inferGuestMeta(invite.label);
+  const guestMeta = getGuestMeta(invite.people_count);
   const parsed = parsePayload(raw, guestMeta.limit, guestMeta.kind);
   if (parsed.error) {
     return json({ ok: false, error: parsed.error }, 400, corsHeaders);

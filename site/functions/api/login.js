@@ -37,7 +37,7 @@ export async function onRequestPost(context) {
 
   const db = getDb(env);
   const found = await db
-    .prepare("SELECT code, label FROM invites WHERE code = ?1 AND active = 1")
+    .prepare("SELECT code, label, people_count FROM invites WHERE code = ?1 AND active = 1")
     .bind(code)
     .first();
 
@@ -49,7 +49,7 @@ export async function onRequestPost(context) {
   const token = await encodeSession(code, secret);
 
   return json(
-    { ok: true, invite: { code: found.code, label: found.label } },
+    { ok: true, invite: { code: found.code, label: found.label, people_count: found.people_count } },
     200,
     { "set-cookie": buildSetCookie(token), ...corsHeaders }
   );

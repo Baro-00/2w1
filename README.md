@@ -9,6 +9,8 @@ SQL do stworzenia schematu znajduje sie w:
 - `sql/001_create_tables.sql`
 - `sql/002_indexes.sql`
 - `sql/003_seed_invites_example.sql` (opcjonalnie, przykladowe kody)
+- `sql/011_add_people_count_to_invites.sql` (migracja dla istniejacej bazy)
+- `sql/012_backfill_people_count.sql` (uzupelnienie people_count na podstawie etykiet)
 
 ### Wymagane bindingi / sekrety
 
@@ -36,6 +38,8 @@ Flow:
 6. `GET /api/gallery` zwraca liste plikow galerii
 7. `POST /api/gallery` uploaduje wiele plikow (`multipart/form-data`, pole `files`)
 8. `GET /api/gallery-file?key=...` zwraca plik z R2
+
+`invites.people_count` steruje limitem osob w formularzu RSVP (nocleg + liczba pol menu).
 
 ### Cloudflare R2 (galeria)
 

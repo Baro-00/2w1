@@ -16,7 +16,7 @@ export async function onRequestGet(context) {
 
   const db = getDb(env);
   const invite = await db
-    .prepare("SELECT code, label FROM invites WHERE code = ?1 AND active = 1")
+    .prepare("SELECT code, label, people_count FROM invites WHERE code = ?1 AND active = 1")
     .bind(code)
     .first();
 

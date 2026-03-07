@@ -3,6 +3,7 @@ PRAGMA foreign_keys = ON;
 CREATE TABLE IF NOT EXISTS invites (
   code TEXT PRIMARY KEY CHECK(length(code) = 6),
   label TEXT NOT NULL,
+  people_count INTEGER NOT NULL DEFAULT 2 CHECK(people_count >= 1 AND people_count <= 4),
   active INTEGER NOT NULL DEFAULT 1 CHECK(active IN (0, 1)),
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
