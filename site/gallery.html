@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="pl">
 <head>
   <meta charset="utf-8" />
@@ -26,10 +26,18 @@
         <h1 style="font-size: clamp(30px, 4.5vw, 52px); margin-bottom: 8px;">Galeria</h1>
         <p id="status-text">Wrzuć zdjęcia i filmiki z telefonu. Możesz zaznaczyć wiele plików naraz.</p>
 
-        <form id="upload-form" class="form-row" enctype="multipart/form-data" style="margin-top: 18px;">
-          <input id="file-input" class="input" type="file" name="files" multiple accept="image/*,video/*" />
-          <button class="btn btn-primary" type="submit">Wyślij pliki</button>
-          <button class="btn btn-secondary" type="button" id="refresh-btn">Odśwież</button>
+        <form id="upload-form" enctype="multipart/form-data" style="margin-top: 18px;">
+          <input id="file-input" type="file" name="files" multiple accept="image/*,video/*" hidden />
+          <div class="upload-toolbar">
+            <button class="btn btn-secondary" type="button" id="pick-files-btn">Wybierz pliki</button>
+            <div id="selected-count" class="upload-count">Nie wybrano plików.</div>
+            <button class="btn btn-primary" type="submit" id="upload-btn">Wyślij pliki</button>
+            <button class="btn btn-secondary" type="button" id="cancel-upload-btn" disabled>Anuluj upload</button>
+            <button class="btn btn-secondary" type="button" id="refresh-btn">Odśwież</button>
+          </div>
+          <div class="upload-list-wrap">
+            <ul id="upload-list" class="upload-list"></ul>
+          </div>
         </form>
       </article>
 
@@ -43,11 +51,117 @@
     const statusText = document.getElementById("status-text");
     const uploadForm = document.getElementById("upload-form");
     const fileInput = document.getElementById("file-input");
+    const pickFilesBtn = document.getElementById("pick-files-btn");
+    const uploadBtn = document.getElementById("upload-btn");
+    const cancelUploadBtn = document.getElementById("cancel-upload-btn");
     const refreshBtn = document.getElementById("refresh-btn");
+    const selectedCount = document.getElementById("selected-count");
+    const uploadList = document.getElementById("upload-list");
     const galleryGrid = document.getElementById("gallery-grid");
+    let selectedFiles = [];
+    let isUploading = false;
+    let cancelRequested = false;
+    let activeXhr = null;
 
     function setStatus(text) {
       statusText.textContent = text;
+    }
+
+    function formatFileSize(bytes) {
+      if (bytes < 1024) return `${bytes} B`;
+      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+      return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    }
+
+    function escapeHtml(text) {
+      return String(text || "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;");
+    }
+
+    function updateSelectedCount() {
+      if (selectedFiles.length === 0) {
+        selectedCount.textContent = "Nie wybrano plików.";
+        return;
+      }
+      selectedCount.textContent = `Wybrane pliki: ${selectedFiles.length}`;
+    }
+
+    function setUploadStatus(index, status, message) {
+      const row = uploadList.querySelector(`[data-index="${index}"]`);
+      if (!row) return;
+      row.setAttribute("data-status", status);
+
+      const badge = row.querySelector(".upload-state");
+      if (badge) {
+        const labels = {
+          queued: "Oczekuje",
+          uploading: "Wysyłanie",
+          success: "Wysłane",
+          error: "Błąd",
+        };
+        badge.textContent = labels[status] || status;
+      }
+
+      const note = row.querySelector(".upload-note");
+      if (note) {
+        note.textContent = message || "";
+      }
+
+      const removeBtn = row.querySelector(".upload-remove");
+      if (removeBtn) {
+        removeBtn.disabled = isUploading;
+      }
+    }
+
+    function setUploadProgress(index, percent) {
+      const row = uploadList.querySelector(`[data-index="${index}"]`);
+      if (!row) return;
+      const value = Math.max(0, Math.min(100, Number(percent) || 0));
+
+      const bar = row.querySelector(".upload-progress-fill");
+      if (bar) {
+        bar.style.width = `${value}%`;
+      }
+
+      const note = row.querySelector(".upload-note");
+      if (note) {
+        note.textContent = `${value}%`;
+      }
+    }
+
+    function renderUploadList() {
+      if (selectedFiles.length === 0) {
+        uploadList.innerHTML = "<li class='upload-empty'>Brak plików do wysłania.</li>";
+        return;
+      }
+
+      uploadList.innerHTML = selectedFiles
+        .map((item, index) => {
+          const file = item.file;
+          const previewTag = item.isVideo
+            ? `<video class="upload-thumb" muted playsinline preload="metadata" src="${item.previewUrl}"></video>`
+            : `<img class="upload-thumb" alt="${escapeHtml(file.name)}" src="${item.previewUrl}" />`;
+          return `
+            <li class="upload-row" data-index="${index}" data-status="queued">
+              <div class="upload-preview">${previewTag}</div>
+              <div class="upload-main">
+                <strong>${escapeHtml(file.name)}</strong>
+                <span class="upload-size">${formatFileSize(file.size)}</span>
+              </div>
+              <div class="upload-side">
+                <span class="upload-state">Oczekuje</span>
+                <span class="upload-note"></span>
+              </div>
+              <button class="btn btn-secondary upload-remove" type="button" data-remove-index="${index}" ${isUploading ? "disabled" : ""}>Usuń</button>
+              <div class="upload-progress">
+                <div class="upload-progress-fill"></div>
+              </div>
+            </li>
+          `;
+        })
+        .join("");
     }
 
     function isVideo(contentType) {
@@ -62,9 +176,10 @@
 
       galleryGrid.innerHTML = "";
 
-      for (const item of items) {
+      for (const [index, item] of items.entries()) {
         const card = document.createElement("article");
         card.className = "gallery-item";
+        card.style.animationDelay = `${Math.min(index * 40, 320)}ms`;
 
         if (isVideo(item.contentType)) {
           const video = document.createElement("video");
@@ -91,6 +206,58 @@
       }
     }
 
+    function uploadSingleFile(file, index) {
+      return new Promise((resolve, reject) => {
+        const formData = new FormData();
+        formData.append("files", file);
+
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", "/api/gallery");
+        xhr.responseType = "text";
+        activeXhr = xhr;
+
+        setUploadStatus(index, "uploading");
+        setUploadProgress(index, 0);
+
+        xhr.upload.onprogress = (event) => {
+          if (!event.lengthComputable) return;
+          const percent = Math.round((event.loaded / event.total) * 100);
+          setUploadProgress(index, percent);
+        };
+
+        xhr.onload = () => {
+          activeXhr = null;
+          let data = {};
+          try {
+            data = JSON.parse(xhr.responseText || "{}");
+          } catch (_) {
+            data = {};
+          }
+
+          if (xhr.status < 200 || xhr.status >= 300 || !data.ok) {
+            reject(new Error(data.error || "Upload nieudany."));
+            return;
+          }
+
+          setUploadProgress(index, 100);
+          setUploadStatus(index, "success");
+          resolve(data);
+        };
+
+        xhr.onerror = () => {
+          activeXhr = null;
+          reject(new Error("Błąd sieci podczas uploadu."));
+        };
+
+        xhr.onabort = () => {
+          activeXhr = null;
+          reject(new Error("Upload anulowany."));
+        };
+
+        xhr.send(formData);
+      });
+    }
+
     async function loadGallery() {
       setStatus("Ładowanie galerii...");
       const response = await fetch("/api/gallery");
@@ -102,34 +269,103 @@
       setStatus(`Plików w galerii: ${data.items.length}`);
     }
 
+    pickFilesBtn.addEventListener("click", () => {
+      fileInput.click();
+    });
+
+    fileInput.addEventListener("change", () => {
+      for (const item of selectedFiles) {
+        if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+      }
+      selectedFiles = Array.from(fileInput.files || []).map((file) => ({
+        file,
+        previewUrl: URL.createObjectURL(file),
+        isVideo: String(file.type || "").startsWith("video/"),
+      }));
+      updateSelectedCount();
+      renderUploadList();
+    });
+
+    uploadList.addEventListener("click", (event) => {
+      const btn = event.target.closest(".upload-remove");
+      if (!btn) return;
+      if (isUploading) return;
+
+      const index = Number(btn.getAttribute("data-remove-index"));
+      if (!Number.isInteger(index) || index < 0 || index >= selectedFiles.length) return;
+
+      const [removed] = selectedFiles.splice(index, 1);
+      if (removed?.previewUrl) URL.revokeObjectURL(removed.previewUrl);
+      updateSelectedCount();
+      renderUploadList();
+    });
+
     uploadForm.addEventListener("submit", async (event) => {
       event.preventDefault();
-      const files = fileInput.files;
-      if (!files || files.length === 0) {
+      if (selectedFiles.length === 0) {
         setStatus("Wybierz przynajmniej jeden plik.");
         return;
       }
 
-      const formData = new FormData();
-      for (const file of files) {
-        formData.append("files", file);
-      }
-
+      isUploading = true;
+      cancelRequested = false;
+      uploadBtn.disabled = true;
+      pickFilesBtn.disabled = true;
+      cancelUploadBtn.disabled = false;
+      refreshBtn.disabled = true;
       try {
-        setStatus(`Wysyłanie ${files.length} plików...`);
-        const response = await fetch("/api/gallery", {
-          method: "POST",
-          body: formData,
-        });
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok || !data.ok) {
-          throw new Error(data.error || "Upload nieudany.");
+        setStatus(`Wysyłanie ${selectedFiles.length} plików...`);
+        let successCount = 0;
+
+        for (let i = 0; i < selectedFiles.length; i += 1) {
+          if (cancelRequested) break;
+          const file = selectedFiles[i].file;
+          try {
+            await uploadSingleFile(file, i);
+            successCount += 1;
+          } catch (error) {
+            if (cancelRequested) {
+              setUploadStatus(i, "error", "Anulowano");
+              break;
+            }
+            setUploadStatus(i, "error", error.message);
+          }
         }
+
+        if (cancelRequested) {
+          setStatus(`Upload anulowany. Wysłane: ${successCount}/${selectedFiles.length}`);
+        } else {
+          setStatus(`Wysłane: ${successCount}/${selectedFiles.length}`);
+        }
+        if (successCount > 0) {
+          await loadGallery();
+        }
+
         fileInput.value = "";
-        setStatus(`Dodano: ${data.uploaded.length} plików.`);
-        await loadGallery();
+        for (const item of selectedFiles) {
+          if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+        }
+        selectedFiles = [];
+        updateSelectedCount();
+        renderUploadList();
       } catch (error) {
         setStatus(error.message);
+      } finally {
+        isUploading = false;
+        cancelRequested = false;
+        activeXhr = null;
+        uploadBtn.disabled = false;
+        pickFilesBtn.disabled = false;
+        cancelUploadBtn.disabled = true;
+        refreshBtn.disabled = false;
+      }
+    });
+
+    cancelUploadBtn.addEventListener("click", () => {
+      if (!isUploading) return;
+      cancelRequested = true;
+      if (activeXhr) {
+        activeXhr.abort();
       }
     });
 
@@ -142,6 +378,8 @@
     });
 
     (async () => {
+      updateSelectedCount();
+      renderUploadList();
       try {
         await loadGallery();
       } catch (error) {

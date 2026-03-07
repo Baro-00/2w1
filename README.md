@@ -37,7 +37,7 @@ Flow:
 7. `POST /api/gallery` uploaduje wiele plikow (`multipart/form-data`, pole `files`)
 8. `GET /api/gallery-file?key=...` zwraca plik z R2
 
-### R2 (galeria)
+### Cloudflare R2 (galeria)
 
 Dodaj binding R2 w `wrangler.jsonc`:
 

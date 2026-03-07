@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="pl">
 <head>
   <meta charset="utf-8" />
@@ -11,7 +11,7 @@
     <div class="container" style="max-width: 760px;">
       <article class="info-card">
         <h1 style="font-size: clamp(28px, 4vw, 44px); margin-bottom: 12px;">Formularz potwierdzenia</h1>
-        <p id="status-text">Wpisz kod z zaproszenia (6 znakow), aby przejsc do formularza.</p>
+        <p id="status-text">Wpisz kod z zaproszenia (6 znaków), aby przejść do formularza.</p>
 
         <form id="login-form" class="form-row" style="margin-top: 18px;">
           <input
@@ -33,7 +33,7 @@
         <form id="rsvp-form" style="display:none; margin-top: 24px;">
           <div class="cards-2">
             <div class="section-card" style="padding: 18px; box-shadow: none;">
-              <h3>Czy bedziesz z nami?</h3>
+              <h3>Czy będziesz z nami?</h3>
               <div class="form-row" style="margin-top: 12px;">
                 <label><input type="radio" name="attending" value="yes" required /> Tak</label>
                 <label><input type="radio" name="attending" value="no" /> Nie</label>
@@ -45,7 +45,7 @@
               <select class="input" name="menuChoice" id="menuChoice" style="border-radius: 14px;">
                 <option value="">Bez preferencji</option>
                 <option value="standard">Standard</option>
-                <option value="vegetarian">Wegetarianskie</option>
+                <option value="vegetarian">Wegetariańskie</option>
               </select>
             </div>
           </div>
@@ -53,8 +53,8 @@
           <div class="section-card" style="padding: 18px; box-shadow: none; margin-top: 18px;">
             <h3>Nocleg</h3>
             <div class="form-row" style="margin-top: 12px;">
-              <label><input type="radio" name="lodgingNeeded" value="yes" /> Potrzebuje noclegu</label>
-              <label><input type="radio" name="lodgingNeeded" value="no" checked /> Nie potrzebuje</label>
+              <label><input type="radio" name="lodgingNeeded" value="yes" /> Potrzebuję noclegu</label>
+              <label><input type="radio" name="lodgingNeeded" value="no" checked /> Nie potrzebuję</label>
             </div>
 
             <div class="cards-3" id="lodging-fields" style="margin-top: 16px; display:none;">
@@ -67,7 +67,7 @@
                 <input class="input" type="date" name="lodgingTo" min="2026-06-03" max="2026-06-07" />
               </label>
               <label>
-                Liczba osob
+                Liczba osób
                 <input class="input" type="number" name="roomPeople" min="1" max="8" step="1" />
               </label>
             </div>
@@ -122,7 +122,7 @@
     function setLoggedOut() {
       loginForm.style.display = "flex";
       rsvpForm.style.display = "none";
-      setStatus("Wpisz kod z zaproszenia (6 znakow), aby przejsc do formularza.");
+      setStatus("Wpisz kod z zaproszenia (6 znaków), aby przejść do formularza.");
     }
 
     function toggleLodgingFields() {
@@ -139,7 +139,7 @@
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.ok) {
-        throw new Error(data.error || "Nie udalo sie zalogowac.");
+        throw new Error(data.error || "Nie udało się zalogować.");
       }
       return data;
     }
@@ -175,7 +175,7 @@
 
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.ok) {
-        throw new Error(data.error || "Blad pobierania sesji.");
+        throw new Error(data.error || "Błąd pobierania sesji.");
       }
 
       setLoggedIn(data.invite);
@@ -186,7 +186,7 @@
       event.preventDefault();
       const code = normalizeCode(codeInput.value);
       if (!/^[A-Z0-9]{6}$/.test(code)) {
-        setStatus("Kod musi miec dokladnie 6 znakow (A-Z, 0-9).");
+        setStatus("Kod musi mieć dokładnie 6 znaków (A-Z, 0-9).");
         codeInput.focus();
         return;
       }
@@ -223,7 +223,7 @@
       };
 
       if (!ALLOWED_MENU.has(payload.menuChoice)) {
-        setStatus("Dozwolone opcje menu: Standard lub Wegetarianskie.");
+        setStatus("Dozwolone opcje menu: Standard lub Wegetariańskie.");
         return;
       }
 
@@ -234,7 +234,7 @@
           (payload.lodgingTo && (payload.lodgingTo < LODGING_MIN || payload.lodgingTo > LODGING_MAX))
         )
       ) {
-        setStatus("Nocleg mozna wybrac tylko w zakresie 03.06.2026-07.06.2026.");
+        setStatus("Nocleg można wybrać tylko w zakresie 03.06.2026-07.06.2026.");
         return;
       }
 
@@ -248,7 +248,7 @@
 
         const data = await response.json().catch(() => ({}));
         if (!response.ok || !data.ok) {
-          throw new Error(data.error || "Nie udalo sie zapisac formularza.");
+          throw new Error(data.error || "Nie udało się zapisać formularza.");
         }
         setStatus("Formularz zapisany.");
       } catch (error) {
