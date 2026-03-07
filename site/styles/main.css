@@ -502,6 +502,16 @@ h1 {
     border-color: rgba(79, 107, 79, 0.22);
 }
 
+.code-input {
+    border-radius: 14px;
+    min-height: 52px;
+    letter-spacing: 0.04em;
+    font-weight: 700;
+    text-transform: uppercase;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
 .faq {
     display: grid;
     gap: 14px;
@@ -905,6 +915,7 @@ h1 {
     .hero-actions { flex-direction: column; }
     .form-row { flex-direction: column; }
     .input { width: 100%; }
+    .code-input { border-radius: 12px; min-height: 50px; padding-top: 14px; padding-bottom: 14px; }
     .rsvp-card { align-items: start; }
     .gallery-grid { grid-template-columns: 1fr; }
     .upload-toolbar { grid-template-columns: 1fr; }
