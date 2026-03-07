@@ -1,6 +1,6 @@
 # 2w1
 
-## RSVP + Cloudflare D1
+## Formularz + Cloudflare D1
 
 ### SQL
 
@@ -28,6 +28,6 @@ Flow:
 
 1. `POST /api/login` z `{ "code": "ABC123" }` (dokladnie 6 znakow alfanumerycznych)
 2. API ustawia `HttpOnly` cookie sesji
-3. `GET /api/me` zwraca dane zaproszenia i zapisany RSVP
+3. `GET /api/me` zwraca dane zaproszenia i zapisany formularz
 4. `POST /api/rsvp` zapisuje/aktualizuje odpowiedz
 5. `POST /api/logout` kasuje sesje

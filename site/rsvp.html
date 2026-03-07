@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>RSVP | Impreza 2w1</title>
+  <title>Formularz | Impreza 2w1</title>
   <link rel="stylesheet" href="styles/main.css" />
 </head>
 <body>
   <main class="section">
     <div class="container" style="max-width: 760px;">
       <article class="info-card">
-        <h1 style="font-size: clamp(28px, 4vw, 44px); margin-bottom: 12px;">RSVP</h1>
+        <h1 style="font-size: clamp(28px, 4vw, 44px); margin-bottom: 12px;">Formularz potwierdzenia</h1>
         <p id="status-text">Wpisz kod z zaproszenia (6 znakow), aby przejsc do formularza.</p>
 
         <form id="login-form" class="form-row" style="margin-top: 18px;">
@@ -86,7 +86,7 @@
           </div>
 
           <div class="hero-actions">
-            <button class="btn btn-primary" type="submit">Zapisz RSVP</button>
+            <button class="btn btn-primary" type="submit">Zapisz formularz</button>
             <button class="btn btn-secondary" type="button" id="logout-btn">Wyloguj</button>
           </div>
         </form>
@@ -238,7 +238,7 @@
         return;
       }
 
-      setStatus("Zapisywanie RSVP...");
+      setStatus("Zapisywanie formularza...");
       try {
         const response = await fetch("/api/rsvp", {
           method: "POST",
@@ -248,9 +248,9 @@
 
         const data = await response.json().catch(() => ({}));
         if (!response.ok || !data.ok) {
-          throw new Error(data.error || "Nie udalo sie zapisac RSVP.");
+          throw new Error(data.error || "Nie udalo sie zapisac formularza.");
         }
-        setStatus("RSVP zapisane.");
+        setStatus("Formularz zapisany.");
       } catch (error) {
         setStatus(error.message);
       }
