@@ -380,6 +380,8 @@
           throw new Error(data.error || "Nie udało się zapisać formularza.");
         }
         setStatus("Formularz zapisany.");
+        alert("Formularz zapisany. Dziękujemy!");
+        window.location.href = "/";
       } catch (error) {
         setStatus(error.message);
       }
