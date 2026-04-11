@@ -839,6 +839,48 @@ h1 {
     background: rgba(0, 0, 0, 0.1);
 }
 
+.popup-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 120;
+    display: none;
+}
+
+.popup-modal[aria-hidden="false"] {
+    display: grid;
+    place-items: center;
+}
+
+.popup-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(34, 28, 22, 0.46);
+    backdrop-filter: blur(4px);
+}
+
+.popup-card {
+    position: relative;
+    z-index: 1;
+    width: min(420px, calc(100% - 24px));
+    padding: 28px;
+    text-align: center;
+    background: var(--card);
+    border: 1px solid rgba(183, 146, 77, 0.18);
+    border-radius: var(--radius-xl);
+    box-shadow: 0 24px 46px rgba(95, 76, 46, 0.18);
+    animation: riseIn 220ms var(--ease-out) both;
+}
+
+.popup-card p {
+    margin: 8px 0 0;
+    color: var(--muted);
+}
+
+.popup-card .btn {
+    margin-top: 20px;
+    min-width: 120px;
+}
+
 @keyframes galleryFade {
     from {
     opacity: 0;

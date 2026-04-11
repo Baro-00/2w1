@@ -93,6 +93,16 @@
     </div>
   </main>
 
+  <div class="popup-modal" id="saved-popup" aria-hidden="true">
+    <div class="popup-backdrop" data-popup-close="true"></div>
+    <div class="popup-card" role="dialog" aria-modal="true" aria-labelledby="saved-popup-title">
+      <div class="icon-badge" style="margin-bottom: 12px;">✓</div>
+      <h2 id="saved-popup-title">Formularz zapisany</h2>
+      <p>Dziękujemy!</p>
+      <button class="btn btn-primary" type="button" id="saved-popup-close">OK</button>
+    </div>
+  </div>
+
   <script>
     const loginForm = document.getElementById("login-form");
     const rsvpForm = document.getElementById("rsvp-form");
@@ -103,6 +113,8 @@
     const lodgingFields = document.getElementById("lodging-fields");
     const lodgingLimitHint = document.getElementById("lodging-limit-hint");
     const menuContainer = document.getElementById("menu-per-person");
+    const savedPopup = document.getElementById("saved-popup");
+    const savedPopupClose = document.getElementById("saved-popup-close");
     const LODGING_MIN = "2026-06-03";
     const LODGING_MAX = "2026-06-07";
     const ALLOWED_MENU = new Set(["", "standard", "vegetarian", "kids"]);
@@ -117,6 +129,17 @@
 
     function setStatus(message) {
       statusText.textContent = message;
+    }
+
+    function openSavedPopup() {
+      if (!savedPopup) return;
+      savedPopup.setAttribute("aria-hidden", "false");
+      savedPopupClose?.focus();
+    }
+
+    function closeSavedPopup() {
+      if (!savedPopup) return;
+      savedPopup.setAttribute("aria-hidden", "true");
     }
 
     function normalizeCode(value) {
@@ -380,8 +403,23 @@
           throw new Error(data.error || "Nie udało się zapisać formularza.");
         }
         setStatus("Formularz zapisany.");
+        openSavedPopup();
       } catch (error) {
         setStatus(error.message);
+      }
+    });
+
+    savedPopup?.addEventListener("click", (event) => {
+      if (event.target.dataset.popupClose === "true") {
+        closeSavedPopup();
+      }
+    });
+
+    savedPopupClose?.addEventListener("click", closeSavedPopup);
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && savedPopup?.getAttribute("aria-hidden") === "false") {
+        closeSavedPopup();
       }
     });
 
